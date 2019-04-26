@@ -1,0 +1,69 @@
+# ignore compiled byte code
+target
+
+# ignore output files from testing
+output*
+
+# ignore standard Eclipse files
+.project
+.classpath
+.settings
+.checkstyle
+
+# ignore standard IntelliJ files
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# ignore standard Vim and Emacs temp files
+*.swp
+*~
+*.log
+# ignore standard Mac OS X files/dirs
+.DS_Store
+
+# ignore others' database
+accumulo1.6
+accumulo1.7
+accumulo1.8
+arangodb
+asynchbase
+azurecosmos
+azuredocumentdb
+azuretablestorage
+cassandra
+couchbase
+couchbase2
+dynamodb
+elasticsearch
+elasticsearch5
+foundationdb
+geode
+googlebigtable
+googledatastore
+hbase098
+hbase10
+hbase12
+hbase14
+hbase20
+cloudspanner
+jdbc
+ignite
+infinispan
+kudu
+mapkeeper
+maprdb
+maprjsondb
+mongodb
+nosqldb
+orientdb
+rados
+redis
+riak
+rocksdb
+s3
+solr
+solr6
+tarantool
+
