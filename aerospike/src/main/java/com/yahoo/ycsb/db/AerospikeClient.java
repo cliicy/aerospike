@@ -41,7 +41,6 @@ import java.util.Vector;
  */
 public class AerospikeClient extends com.yahoo.ycsb.DB {
   private static final String DEFAULT_HOST = "localhost";
-//  private static final String DEFAULT_HOST = "192.168.10.202";
   private static final String DEFAULT_PORT = "3000";
   private static final String DEFAULT_TIMEOUT = "10000";
   private static final String DEFAULT_NAMESPACE = "ycsb";
