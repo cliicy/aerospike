@@ -3,23 +3,16 @@ default_conf=aerospike.conf
 sfxd=("sfd2n1" "sfd0n1" "sfd1n1")
 #sfxd=("sfd0n1")
 host=192.168.10.202
-##host=192.168.10.162
-#daslog=/var/log/aerospike/aerospike.log
-daslog=/opt/aerospike/data/log/aerospike.log
 
 io_sec=5
-#asrestart=1
-asrestart=0
-insertstart=0
+
 oneY=100000000
 #exetime=43200
-exetime=7200
+#exetime=7200
 #exetime=10800
 #exetime=9000
-#exetime=14400
-#exetime=3600
+exetime=3600
 #exetime=600
-#exetime=1800
 
 #ret=y means always use the configure file of workloads/workloada 
 ret=y 
@@ -47,8 +40,6 @@ function ycsb_options()
 
 function prepare_conf()
 {
-    #asrestart=0 # only for test when don't need to restart aerospike server
-    return # only for test  when don't need to restart aerospike server
     echo $1
     if [ "$1" = "all" ];then
        echo "will reset config file later: "
@@ -65,7 +56,7 @@ function prepare_conf()
 }
 
 
-while getopts :a:b:l:n:m:d:h:c:w:t:r:o:s:g:p:i: vname 
+while getopts :a:b:l:n:m:d:h:c:w:t:r:o:s:g:p: vname 
 do
     case "$vname" in
        a) #echo "$OPTARG: load | run"
@@ -77,10 +68,6 @@ do
        p)
           echo $OPTARG
           port=$OPTARG
-          ;;
-       i)
-          echo $OPTARG
-          insertstart=$OPTARG
           ;;
        w) #echo "$OPTARG: using the workloads/workloada totally? y|n"
           ret=$OPTARG 
@@ -123,7 +110,7 @@ do
           fi
           ;;
        b)
-          echo "storage: $OPTARG" 
+          echo "block device: $OPTARG" 
           bldevice=$OPTARG
           #define bldevice=sfd0n1 to only test sfd0n1
           #bldevice=sfd0n1
@@ -165,7 +152,7 @@ do
           exit 0
           ;;
        h) echo "-a for phrase: load | run" 
-          echo "-b : the name of storage"
+          echo "-b : the name of block device"
           echo "-w : using the workloads/workloada totally? y|n"
           echo "-h for help"
           echo "-l: show|edit|add the logs information"
@@ -182,44 +169,6 @@ do
 esac
 done
 
-function is_aeroser_active()
-{
-    return  # test only
-    echo "checking is_aeroser_active $1"
-    tmpfile=$1
-    tail -f -n 0 $daslog  >> $tmpfile &
-    while true
-    do
-        #echo "checking aerospike service is active or not......"
-        grep "service ready: soon there will be cake!" $tmpfile
-        if [ $? -eq 0 ];then
-            echo "aerospike is active now!-----$2"
-            break
-        fi
-        sleep 1
-    done
-}
-
-function is_aeroser_stop()
-{
-    return
-    echo "checking is_aeroser_stop $1"
-    while true
-    do
-        grep "Active: inactive (dead)" $1
-        if [ $? -eq 0 ];then
-            echo "aerospike is stopped already!"
-            break
-        fi
-        sleep 0.5
-    done
-}
-
-function kill_sublogprocess()
-{
-    ps -ef | grep "tail -f -n 0" | awk {'print $2'} >ttr.txt
-    cat ttr.txt | xargs kill -9
-}
 
 function cls_data()
 {
@@ -228,31 +177,23 @@ function cls_data()
        echo "will clean the data from aerospike server"
        #service aerospike stop && rm -rf /opt/aerospike/xfsdata/*.dat
        service aerospike stop
-       service aerospike status > asstatus.txt
-       is_aeroser_stop asstatus.txt 
+       service aerospike status
        rm -rf /opt/aerospike/xfsdata/*.dat
        umount /dev/${sfxd[2]}
        mkfs -t xfs /dev/${sfxd[2]}
        mount /dev/${sfxd[2]} /opt/aerospike/xfsdata
    fi
    if [ $fs = "ext4" ];then
-       if [ "$asrestart" = "1" ];then
-           service aerospike stop
-       fi
-       service aerospike status > asstatus.txt
-       is_aeroser_stop asstatus.txt
-       if [ "$insertstart" = "0" ];then
-           echo "test"
-           #rm -rf /opt/aerospike/data/*.dat
-           #echo "umount /dev/$bldevice"
-           #umount /dev/$bldevice
-           #echo "mkfs.ext4 /dev/$bldevice"
-           #mkfs.ext4 /dev/$bldevice
-           #echo "mount /dev/$bldevice /opt/aerospike/data"
-           #mount /dev/$bldevice /opt/aerospike/data
-       else
-           echo "Don't need delete the old data and just insert loading" 
-       fi
+       #service aerospike stop && rm -rf /opt/aerospike/data/*.dat
+       service aerospike stop
+       service aerospike status
+       rm -rf /opt/aerospike/data/*.dat
+       echo "umount /dev/$bldevice"
+       umount /dev/$bldevice
+       echo "mkfs.ext4 /dev/$bldevice"
+       mkfs.ext4 /dev/$bldevice
+       echo "mount /dev/$bldevice /opt/aerospike/data"
+       mount /dev/$bldevice /opt/aerospike/data
    fi
    if [ $fs = "device" ];then
        service aerospike stop
@@ -263,14 +204,14 @@ function cls_data()
        else
            echo "nvme format /dev/$bldevice"
            nvme format /dev/$bldevice
-           source ./autoAnyCSSdisk.sh /dev/$bldevice
+           source ./autoAnyCSSdisk.sh /dev/sfd0n1
        fi
    fi
 }
 
 flag=YCSB_
-prefix=$flag`date +%y%m%d_%H%M%S`
-logctime=$flag`date +%y%m%d_%H:%M:%S`
+prefix=$flag`date +%d%m%y_%H%M%S`
+logctime=$flag`date +%d%m%y_%H:%M:%S`
 root_dir=`pwd`
 presult=$root_dir/output/aerospike/$prefix
 mkdir -p $presult/csv
@@ -283,23 +224,11 @@ echo "action=$action storage-engine=$device using_workloads/workloada=$ret bldev
 iostat2csv()
 {
     echo "will save files in $presult to csv"
-    cpu_flag="avg-cpu:\s+%user\s+%nice\s+%system\s+%iowait\s+%steal\s+%idle"
     for f in `ls $presult/*.iostat`;
     do
         cat $f | grep -m 1 Device | sed -r 's/\s+/,/g' > $f.csv
         cat $f | grep sfd | sed -r 's/\s+/,/g' >> $f.csv
-
-        # get cpu information to csv
-        cat $f | grep -m 1  vg-cpu:| sed -r 's/\s+/,/g' > ${f}_cpu.csv
-        echo "cat $f | grep -A 1 avg-cpu: | sed -r "s/$cpu_flag//g"  > ${f}.cpu"
-        cat $f | grep -A 1 avg-cpu: | sed -r "s/${cpu_flag}//g"  > ${f}.cpu
-        sed -ri 's/--//g' ${f}.cpu
-        sed -ri 's/\s+/,/g' ${f}.cpu
-        grep . ${f}.cpu >> ${f}_cpu.csv
-
         mv $f.csv $presult/csv/
-        mv ${f}_cpu.csv $presult/csv/
-        rm -rf ${f}.cpu
     done
 }
 
@@ -319,13 +248,15 @@ flagjournal=journal.statue
 
 function doload()
 {
+    service aerospike restart
+
     device=$1
     io_sfx=$2
     echo device=$1 io_sfx=$2
     ppath=$running
     
     if [ "$device" = "ext4" ];then
-        dumpe2fs /dev/$2 | grep 'Filesystem features' | grep 'has_journal' | awk '{print $1 $2 $3}' > $flagjournal
+        dumpe2fs /dev/sfd0n1 | grep 'Filesystem features' | grep 'has_journal' | awk '{print $1 $2 $3}' > $flagjournal
         #cat $flagjournal
         if [ `grep "has_journal" $flagjournal` ];then
             echo "enable journal"
@@ -338,18 +269,6 @@ function doload()
         fi
     fi
 
-    as_log=$ppath.$device.as_log
-    aslog_pid=$as_log.pid
-    echo -e "$device aerospike log starts at: " $logctime "\n"  > $as_log
-    tail -f -n 0 $daslog  >> $as_log &
-    
-    asrestart=0 #no need to restart service if you just want only do run phase
-    if [ "$asrestart" = "1" ];then
-        echo "will restart aerospike server"
-        service aerospike restart
-    fi
-    echo $! > $aslog_pid
-
     sfxdriver_log=$ppath.$device.sfxd_message
     sfxdriver_pid=$sfxdriver_log.pid
     echo -e "$device sfxdriver_message starts at: " $logctime "\n"  > $sfxdriver_log
@@ -361,42 +280,42 @@ function doload()
 
     #iostat all of the sfdx devie, will change it later
     #lsblk | grep sfd | awk '{print "/dev/"$1}' | xargs iostat -txdm 1 >> $iostat_log &
-    echo iostat -ctxdm /dev/$io_sfx $io_sec >> $iostat_log &
-    iostat -ctxdm /dev/$io_sfx $io_sec >> $iostat_log &
+    echo iostat -txdm /dev/$io_sfx $io_sec >> $iostat_log &
+    iostat -txdm /dev/$io_sfx $io_sec >> $iostat_log &
     
     echo $! > $iostat_pid
 
     outfile=$ppath.$device.result
 
-    is_aeroser_active $as_log $action
+    echo "loading data from /dev/$bldevice"
+    #sleep 60
+
+    service aerospike status
     asinfo -v service
 
     echo -e "$device $action phrase starts at:  "$logctime "\n"  > $outfile
     if [ "$ret" = "n" ];then
         echo "characterize parameters......namespace=$namespace threads=$thread  recordcount=$recount p=$port"
+        #bin/ycsb load aerospike -P workloads/workloada -p as.host=$host -p as.port=$port -p as.namespace=$namespace -threads $thread -p recordcount=$recount -s >> $outfile
         if [ "$device" = "ext4" ];then
             conf=workloada_ext4load
         fi
         if [ "$device" = "device" ];then
             conf=workloada_load
         fi
-        echo "bin/ycsb load aerospike -P workloads/$conf -p as.host=$host -p as.port=$port -p as.namespace=$namespace -threads $thread -p recordcount=$recount -p insertstart=$insertstart -s >> $outfile 2>&1 " >>$outfile
-        bin/ycsb load aerospike -P workloads/$conf -p as.host=$host -p as.port=$port -p as.namespace=$namespace -threads $thread -p recordcount=$recount -p insertstart=$insertstart -s >> $outfile 2>&1
+        echo "bin/ycsb load aerospike -P workloads/$conf -p as.host=$host -p as.port=$port -p as.namespace=$namespace -threads $thread -p recordcount=$recount -s >> $outfile 2>&1 " >>$outfile
+        bin/ycsb load aerospike -P workloads/$conf -p as.host=$host -p as.port=$port -p as.namespace=$namespace -threads $thread -p recordcount=$recount -s >> $outfile 2>&1
     elif [ "$ret" = "y" ];then
        echo "workloada....." >>$outfile
        ./bin/ycsb load aerospike -s -P workloads/workloada_load -p as.timeout=5000 >> $outfile 2>&1
     fi
 
-    cendtime=$flag`date +%y%m%d_%H:%M:%S`
+    cendtime=$flag`date +%d%m%y_%H:%M:%S`
     echo -e "\n$device $action phrase ends at: "$cendtime "\n"  >> $outfile &
     echo -e "\n$device sfxdriver_message ends at: "$cendtime "\n"  >> $sfxdriver_log &
-    cat $aslog_pid | xargs kill -9 &
     cat $iostat_pid | xargs kill -9 &
     cat $sfxdriver_pid | xargs kill -9 &
     rm -rf $presult/*pid
-    iostat2csv
-    result2csv
-    kill_sublogprocess
 }
 
 function dorun()
@@ -407,12 +326,9 @@ function dorun()
     action=run
     pp=$presult/$action
     #thread=60
-    logctime=$flag`date +%y%m%d_%H:%M:%S`
+    logctime=$flag`date +%d%m%y_%H:%M:%S`
 
     if [ "$device" = "ext4" ];then
-#        echo "cp -P $confpath/$1_run_$default_conf $conf_dir/$default_conf"
-#        cp -P $confpath/$1_run_$default_conf $conf_dir/$default_conf
-#        cp -P $conf_dir/$default_conf $presult/run_$default_conf
         dumpe2fs /dev/sfd0n1 | grep 'Filesystem features' | grep 'has_journal' | awk '{print $1 $2 $3}' > $flagjournal
         if [ `grep "has_journal" $flagjournal` ];then
             echo "enable journal"
@@ -423,12 +339,11 @@ function dorun()
         fi
     fi
 
+    daslog=/var/log/aerospike/aerospike.log
     as_log=$pp.$device.as_log
     aslog_pid=$as_log.pid
     echo -e "$device aerospike log starts at: " $logctime "\n"  > $as_log
     tail -f -n 0 $daslog  >> $as_log &
-    #service aerospike restart # only for test
-    #is_aeroser_active $as_log $action # only for test
     echo $! > $aslog_pid
 
     sfxdriver_log=$pp.$device.sfxd_message
@@ -442,24 +357,27 @@ function dorun()
 
     #iostat all of the sfdx devie, will change it later
     #lsblk | grep sfd | awk '{print "/dev/"$1}' | xargs iostat -txdm 1 >> $iostat_log &
-    echo iostat -ctxdm /dev/$io_sfx $io_sec >> $iostat_log &
-    iostat -ctxdm /dev/$io_sfx $io_sec >> $iostat_log &
+    echo iostat -txdm /dev/$io_sfx $io_sec >> $iostat_log &
+    iostat -txdm /dev/$io_sfx $io_sec >> $iostat_log &
 
     echo $! > $iostat_pid
 
     outfile=$pp.$device.result
 
+    #disable restart aerospike server because if doing that, run will fail due to connection timeout
+    #service aerospike restart
+    service aerospike status
 
     echo -e "$device $action phrase starts at:  "$logctime "\n"  > $outfile
     if [ "$ret" = "n" ];then
         echo "bin/ycsb run aerospike -P workloads/workloada_run -p as.host=$host -p as.port=$port -p as.namespace=$namespace -threads $thread -p maxexecutiontime=$exetime -p recordcount=$recount -s >> $outfile 2>&1" >> $outfile
-        bin/ycsb run aerospike -P workloads/workloada_run -p as.host=$host -p as.port=$port -p as.namespace=$namespace -threads $thread -p maxexecutiontime=$exetime -p recordcount=$recount -p insertstart=$insertstart -s >> $outfile 2>&1
+        bin/ycsb run aerospike -P workloads/workloada_run -p as.host=$host -p as.port=$port -p as.namespace=$namespace -threads $thread -p maxexecutiontime=$exetime -p recordcount=$recount -s >> $outfile 2>&1
     elif [ "$ret" = "y" ];then
         echo "workloada..... $action"
         bin/ycsb run aerospike -s -P workloads/workloada_run -p operationcount=50000000 >> $outfile
     fi
 
-    cendtime=$flag`date +%y%m%d_%H:%M:%S`
+    cendtime=$flag`date +%d%m%y_%H:%M:%S`
     echo -e "\n$device $action phrase ends at: "$cendtime "\n"  >> $outfile &
     echo -e "\n$device sfxdriver_message ends at: "$cendtime "\n"  >> $sfxdriver_log &
     echo -e "\n$device aerospike log ends at: "$cendtime "\n"  >> $as_log &
@@ -467,9 +385,6 @@ function dorun()
     cat $sfxdriver_pid | xargs kill -9 &
     cat $aslog_pid | xargs kill -9 &
     rm -rf $presult/*pid
-    iostat2csv
-    result2csv
-    kill_sublogprocess
 }
 
 if [ "$action" = "load" ];then
@@ -571,5 +486,3 @@ result2csv
 
 
 #sudo ./loadrun.sh -a load -n css_sfx -b sfd2n1 -t 100 -r 270000000 -c ext4 -w n -p 3000
-
-#asloglatency -l run.has_journal.ext4.as_log -h '{css_sfx}-write' -f head
