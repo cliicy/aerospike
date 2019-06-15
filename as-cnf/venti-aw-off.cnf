@@ -1,0 +1,31 @@
+[mysqld]
+socket                          =/opt/app/mysql-5.7.25/mysqld.sock
+pid-file                        =/opt/app/mysql-5.7.25/mysqld.pid
+basedir                         =/opt/app/mysql-5.7.25
+log-error                       =/opt/app/mysql-5.7.25/logs/error.log
+datadir                         =/opt/data/css/mysql-5.7.25/
+tmpdir                          =/opt/data/css/mysql-5.7.25_tmp
+
+log_timestamps=SYSTEM
+innodb_buffer_pool_size = 2G
+innodb_log_file_size = 1G
+innodb_flush_log_at_trx_commit=1
+innodb_thread_concurrency=0
+innodb_open_files=60000
+innodb_file_per_table=1
+innodb_flush_method=O_DIRECT
+innodb_change_buffering=all
+innodb_adaptive_flushing=1
+innodb_old_blocks_time=1000
+innodb_use_native_aio=1
+innodb_lock_wait_timeout=120
+lock_wait_timeout=60
+innodb_io_capacity_max = 250000
+innodb_flush_neighbors = 0
+innodb_max_dirty_pages_pct = 75
+innodb_max_dirty_pages_pct_lwm = 30
+
+#innodb_doublewrite=0
+
+max_connections=1000
+max_prepared_stmt_count=1048576

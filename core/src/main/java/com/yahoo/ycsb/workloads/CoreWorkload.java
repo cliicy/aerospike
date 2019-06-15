@@ -179,6 +179,15 @@ public class CoreWorkload extends Workload {
    */
   public static final String DATA_INTEGRITY_PROPERTY_DEFAULT = "false";
 
+
+  /** added by cliicy.luo
+   * The default value for the compressed file property.
+   */
+  public static final String DATA_COMPRESSED_FILE_PROPERTY_DEFAULT = "false";
+  public static final String DATA_COMPRESSED_FILE_PROPERTY = "datacompressed";
+  protected String datafile;
+  //added by cliicy.luo
+
   /**
    * Set to true if want to check correctness of reads. Must also
    * be set to true during loading phase to function.
@@ -394,6 +403,10 @@ public class CoreWorkload extends Workload {
   public void init(Properties p) throws WorkloadException {
     table = p.getProperty(TABLENAME_PROPERTY, TABLENAME_PROPERTY_DEFAULT);
 
+    //added by cliicy.luo
+    datafile = p.getProperty(DATA_COMPRESSED_FILE_PROPERTY, "false");
+    //added by cliicy.luo
+
     fieldcount =
         Long.parseLong(p.getProperty(FIELD_COUNT_PROPERTY, FIELD_COUNT_PROPERTY_DEFAULT));
     final String fieldnameprefix = p.getProperty(FIELD_NAME_PREFIX, FIELD_NAME_PREFIX_DEFAULT);
@@ -535,12 +548,20 @@ public class CoreWorkload extends Workload {
 
     String fieldkey = fieldnames.get(fieldchooser.nextValue().intValue());
     ByteIterator data;
-    if (dataintegrity) {
-      data = new StringByteIterator(buildDeterministicValue(key, fieldkey));
-    } else {
-      // fill with random data
-      data = new RandomByteIterator(fieldlengthgenerator.nextValue().longValue());
+    //added by cliicy.luo
+    if (datafile != "false") {
+      data=null;
+      System.out.println("will read data from the compressed file: " + datafile + " ...." );
     }
+    else {
+      if (dataintegrity) {
+        data = new StringByteIterator(buildDeterministicValue(key, fieldkey));
+      } else {
+        // fill with random data
+        data = new RandomByteIterator(fieldlengthgenerator.nextValue().longValue());
+      }
+    }
+    //added by cliicy.luo
     value.put(fieldkey, data);
 
     return value;
@@ -554,14 +575,20 @@ public class CoreWorkload extends Workload {
 
     for (String fieldkey : fieldnames) {
       ByteIterator data;
-      if (dataintegrity) {
-        data = new StringByteIterator(buildDeterministicValue(key, fieldkey));
+      //added by cliicy.luo
+      if (datafile != "false") {
+        data=null;
+        System.out.println("will read data from the compressed file: " + datafile + " ...." );
       } else {
-        // fill with random data
-        data = new RandomByteIterator(fieldlengthgenerator.nextValue().longValue());
+        if (dataintegrity) {
+          data = new StringByteIterator(buildDeterministicValue(key, fieldkey));
+        } else {
+          // fill with random data
+          data = new RandomByteIterator(fieldlengthgenerator.nextValue().longValue());
+        }
       }
       values.put(fieldkey, data);
-    }
+    }//added by cliicy.luo
     return values;
   }
 

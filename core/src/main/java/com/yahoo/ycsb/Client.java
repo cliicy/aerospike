@@ -78,6 +78,13 @@ public final class Client {
     //not used
   }
 
+  /** added by cliicy.luo
+   * The default value for the compressed file property.
+   */
+//  public static final String DATA_COMPRESSED_FILE_PROPERTY_DEFAULT = "false";
+//  public static final String DATA_COMPRESSED_FILE_PROPERTY = "datacompressed";
+  //added by cliicy.luo
+
   public static final String DEFAULT_RECORD_COUNT = "0";
 
   /**
@@ -285,7 +292,9 @@ public final class Client {
     //get number of threads, target and db
     int threadcount = Integer.parseInt(props.getProperty(THREAD_COUNT_PROPERTY, "1"));
     String dbname = props.getProperty(DB_PROPERTY, "com.yahoo.ycsb.BasicDB");
+    System.out.println("ooooo  dbname: " + dbname + " oooo");
     int target = Integer.parseInt(props.getProperty(TARGET_PROPERTY, "0"));
+
 
     //compute the target throughput
     double targetperthreadperms = -1;

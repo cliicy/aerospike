@@ -31,7 +31,7 @@ public final class DBFactory {
 
   public static DB newDB(String dbname, Properties properties, final Tracer tracer) throws UnknownDBException {
     ClassLoader classLoader = DBFactory.class.getClassLoader();
-
+    System.out.println("88888 " + dbname + " 88888");
     DB ret;
 
     try {
