@@ -28,6 +28,11 @@ public class ClientThread implements Runnable {
   private long targetOpsTickNs;
   private final Measurements measurements;
 
+  //added by cliicy.luo
+  private long[] threadOffset={0L};
+  //added by cliicy.luo
+
+
   /**
    * Constructor.
    *
@@ -45,6 +50,7 @@ public class ClientThread implements Runnable {
     this.dotransactions = dotransactions;
     this.workload = workload;
     this.opcount = opcount;
+
     opsdone = 0;
     if (targetperthreadperms > 0) {
       targetOpsPerMs = targetperthreadperms;
@@ -59,6 +65,16 @@ public class ClientThread implements Runnable {
   public void setThreadId(final int threadId) {
     threadid = threadId;
   }
+
+  //added by cliicy.luo
+  public void setThreadoffset(long Offset) {
+
+    threadOffset[0] = Offset;
+  }
+  public long getThreadoffset() {
+    return threadOffset[0];
+  }
+  //added by cliicy.luo
 
   public void setThreadCount(final int threadCount) {
     threadcount = threadCount;
@@ -79,7 +95,7 @@ public class ClientThread implements Runnable {
     }
 
     try {
-      workloadstate = workload.initThread(props, threadid, threadcount);
+      workloadstate = workload.initThread(props, threadid, threadcount,this.threadOffset);
     } catch (WorkloadException e) {
       e.printStackTrace();
       e.printStackTrace(System.out);

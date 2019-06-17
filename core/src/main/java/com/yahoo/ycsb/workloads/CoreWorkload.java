@@ -22,6 +22,7 @@ import com.yahoo.ycsb.generator.*;
 import com.yahoo.ycsb.generator.UniformLongGenerator;
 import com.yahoo.ycsb.measurements.Measurements;
 
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.*;
 
@@ -349,6 +350,9 @@ public class CoreWorkload extends Workload {
    * Default value of the field name prefix.
    */
   public static final String FIELD_NAME_PREFIX_DEFAULT = "field";
+  //added by cliicy.luo
+  public byte[] dst ;
+  //added by cliicy.luo
 
   protected NumberGenerator keysequence;
   protected DiscreteGenerator operationchooser;
@@ -395,6 +399,25 @@ public class CoreWorkload extends Workload {
     return fieldlengthgenerator;
   }
 
+
+  /*
+read data from compressed files added by cliicy.luo
+ */
+  public void ReadCompressedFile(String datafile) {
+    if ( this.dst  == null ) {
+      try {
+        System.out.println("only read at the this time");
+        FileInputStream ins = new FileInputStream(datafile);
+        long fileLength = ins.available();
+        this.dst = new byte[(int) fileLength];
+        ins.read(this.dst);
+        ins.close();
+      } catch (Exception e) {
+        e.printStackTrace();
+      }
+    }
+  }
+
   /**
    * Initialize the scenario.
    * Called once, in the main client thread, before any operations are started.
@@ -405,6 +428,7 @@ public class CoreWorkload extends Workload {
 
     //added by cliicy.luo
     datafile = p.getProperty(DATA_COMPRESSED_FILE_PROPERTY, "false");
+    ReadCompressedFile(datafile);
     //added by cliicy.luo
 
     fieldcount =
@@ -527,6 +551,35 @@ public class CoreWorkload extends Workload {
         INSERTION_RETRY_INTERVAL, INSERTION_RETRY_INTERVAL_DEFAULT));
   }
 
+  //added by cliicy.luo
+  /**
+   * Thread state class holding thread local generators and indices.
+   */
+  protected class wlThreadState {
+
+    /**
+     * The starting timestamp.
+     */
+    public long[] bufferoffset={0L};
+    private int threadid;
+    private int threadcount;
+    /**
+     * Default ctor.
+     *
+     * @param bufoffset
+     * @throws WorkloadException If something went pear shaped.
+     */
+    protected wlThreadState(Properties p, int thrid, int thrcount,long[] bufoffset) throws WorkloadException {
+      bufferoffset[0]=bufoffset[0];
+      threadid=thrid;
+      threadcount=thrcount;
+//      System.out.println("----mythreadid ---- -"+threadid);
+//      System.out.println("----threadcount ----- "+threadcount);
+//      System.out.println("----bufoffset[0] -----"+bufoffset[0]);
+    }
+  }
+  //added by cliicy.luo
+
   protected String buildKeyName(long keynum) {
     if (!orderedinserts) {
       keynum = Utils.hash(keynum);
@@ -543,15 +596,15 @@ public class CoreWorkload extends Workload {
   /**
    * Builds a value for a randomly chosen field.
    */
-  private HashMap<String, ByteIterator> buildSingleValue(String key) {
+  private HashMap<String, ByteIterator> buildSingleValue(String key,long[] offset) {
     HashMap<String, ByteIterator> value = new HashMap<>();
 
     String fieldkey = fieldnames.get(fieldchooser.nextValue().intValue());
     ByteIterator data;
     //added by cliicy.luo
     if (datafile != "false") {
-      data=null;
-      System.out.println("will read data from the compressed file: " + datafile + " ...." );
+//      System.out.println("will read data from the compressed file: " + datafile + " ...." );
+      data = new ReadfileByteIterator(fieldlengthgenerator.nextValue().longValue(),offset,this.dst);
     }
     else {
       if (dataintegrity) {
@@ -570,15 +623,14 @@ public class CoreWorkload extends Workload {
   /**
    * Builds values for all fields.
    */
-  private HashMap<String, ByteIterator> buildValues(String key) {
+  private HashMap<String, ByteIterator> buildValues(String key, long[] offset) {
     HashMap<String, ByteIterator> values = new HashMap<>();
-
     for (String fieldkey : fieldnames) {
       ByteIterator data;
       //added by cliicy.luo
       if (datafile != "false") {
-        data=null;
-        System.out.println("will read data from the compressed file: " + datafile + " ...." );
+//        System.out.println("will read data from the compressed file: " + datafile + " ...." );
+        data = new ReadfileByteIterator(fieldlengthgenerator.nextValue().longValue(),offset,this.dst);
       } else {
         if (dataintegrity) {
           data = new StringByteIterator(buildDeterministicValue(key, fieldkey));
@@ -610,6 +662,14 @@ public class CoreWorkload extends Workload {
     return sb.toString();
   }
 
+  @Override
+  public Object initThread(Properties p, int mythreadid, int threadcount,long[] bufoffset) throws WorkloadException {
+    if (p == null) {
+      throw new WorkloadException("Workload has not been initialized.");
+    }
+    return new wlThreadState(p,mythreadid, threadcount,bufoffset);
+  }
+
   /**
    * Do one insert operation. Because it will be called concurrently from multiple client threads,
    * this function must be thread safe. However, avoid synchronized, or the threads will block waiting
@@ -620,7 +680,9 @@ public class CoreWorkload extends Workload {
   public boolean doInsert(DB db, Object threadstate) {
     int keynum = keysequence.nextValue().intValue();
     String dbkey = buildKeyName(keynum);
-    HashMap<String, ByteIterator> values = buildValues(dbkey);
+    wlThreadState st = ((wlThreadState) threadstate);
+    System.out.println("----thereadID:----" + st.threadid + "----bufoffset: ----" + st.bufferoffset[0]);
+    HashMap<String, ByteIterator> values = buildValues(dbkey,st.bufferoffset);
 
     Status status;
     int numOfRetries = 0;
@@ -665,22 +727,22 @@ public class CoreWorkload extends Workload {
     if(operation == null) {
       return false;
     }
-
+    wlThreadState st = ((wlThreadState) threadstate);
     switch (operation) {
     case "READ":
       doTransactionRead(db);
       break;
     case "UPDATE":
-      doTransactionUpdate(db);
+      doTransactionUpdate(db,st.bufferoffset);
       break;
     case "INSERT":
-      doTransactionInsert(db);
+      doTransactionInsert(db,st.bufferoffset);
       break;
     case "SCAN":
       doTransactionScan(db);
       break;
     default:
-      doTransactionReadModifyWrite(db);
+      doTransactionReadModifyWrite(db,st.bufferoffset);
     }
 
     return true;
@@ -753,10 +815,10 @@ public class CoreWorkload extends Workload {
     }
   }
 
-  public void doTransactionReadModifyWrite(DB db) {
+  public void doTransactionReadModifyWrite(DB db, Object threadstate) {
     // choose a random key
     long keynum = nextKeynum();
-
+    wlThreadState tst = ((wlThreadState) threadstate);
     String keyname = buildKeyName(keynum);
 
     HashSet<String> fields = null;
@@ -773,10 +835,10 @@ public class CoreWorkload extends Workload {
 
     if (writeallfields) {
       // new data for all the fields
-      values = buildValues(keyname);
+      values = buildValues(keyname,tst.bufferoffset);
     } else {
       // update a random field
-      values = buildSingleValue(keyname);
+      values = buildSingleValue(keyname,tst.bufferoffset);
     }
 
     // do the transaction
@@ -822,33 +884,33 @@ public class CoreWorkload extends Workload {
     db.scan(table, startkeyname, len, fields, new Vector<HashMap<String, ByteIterator>>());
   }
 
-  public void doTransactionUpdate(DB db) {
+  public void doTransactionUpdate(DB db, Object threadstate) {
     // choose a random key
     long keynum = nextKeynum();
-
+    wlThreadState tst = ((wlThreadState) threadstate);
     String keyname = buildKeyName(keynum);
 
     HashMap<String, ByteIterator> values;
 
     if (writeallfields) {
       // new data for all the fields
-      values = buildValues(keyname);
+      values = buildValues(keyname,tst.bufferoffset);
     } else {
       // update a random field
-      values = buildSingleValue(keyname);
+      values = buildSingleValue(keyname,tst.bufferoffset);
     }
 
     db.update(table, keyname, values);
   }
 
-  public void doTransactionInsert(DB db) {
+  public void doTransactionInsert(DB db, Object threadstate) {
     // choose the next key
     long keynum = transactioninsertkeysequence.nextValue();
-
+    wlThreadState tst = ((wlThreadState) threadstate);
     try {
       String dbkey = buildKeyName(keynum);
 
-      HashMap<String, ByteIterator> values = buildValues(dbkey);
+      HashMap<String, ByteIterator> values = buildValues(dbkey,tst.bufferoffset);
       db.insert(table, dbkey, values);
     } finally {
       transactioninsertkeysequence.acknowledge(keynum);
@@ -902,4 +964,6 @@ public class CoreWorkload extends Workload {
     }
     return operationchooser;
   }
+
+
 }

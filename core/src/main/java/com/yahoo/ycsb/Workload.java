@@ -17,6 +17,10 @@
 
 package com.yahoo.ycsb;
 
+import com.yahoo.ycsb.generator.NumberGenerator;
+import com.yahoo.ycsb.generator.UnixEpochTimestampGenerator;
+import com.yahoo.ycsb.workloads.TimeSeriesWorkload;
+
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.Properties;
 
@@ -51,7 +55,9 @@ public abstract class Workload {
     SCAN,
     DELETE
   }
-  
+
+
+
   /**
    * Initialize the scenario. Create any generators and other shared objects here.
    * Called once, in the main client thread, before any operations are started.
@@ -73,10 +79,11 @@ public abstract class Workload {
    * Return true otherwise. Return true for workloads that rely on operationcount. For workloads that read
    * traces from a file, return true when there are more to do, false when you are done.
    */
-  public Object initThread(Properties p, int mythreadid, int threadcount) throws WorkloadException {
+  public Object initThread(Properties p, int mythreadid, int threadcount,long[] bufroffset) throws WorkloadException {
     return null;
   }
-      
+
+
   /**
    * Cleanup the scenario. Called once, in the main client thread, after all operations have completed.
    */

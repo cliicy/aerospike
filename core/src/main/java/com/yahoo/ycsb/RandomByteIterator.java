@@ -34,8 +34,8 @@ public class RandomByteIterator extends ByteIterator {
 
   private void fillBytesImpl(byte[] buffer, int base) {
     int bytes = ThreadLocalRandom.current().nextInt();
-
-    switch (buffer.length - base) {
+    int tt = buffer.length - base;
+    switch (tt) {
     default:
       buffer[base + 5] = (byte) (((bytes >> 25) & 95) + ' ');
     case 5:

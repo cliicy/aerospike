@@ -91,7 +91,8 @@ public abstract class ByteIterator implements Iterator<Byte> {
 
   /** Consumes remaining contents of this object, and returns them as a byte array. */
   public byte[] toArray() {
-    long left = bytesLeft();
+    long left = 100;
+//    long left = bytesLeft();
     if (left != (int) left) {
       throw new ArrayIndexOutOfBoundsException("Too much data to fit in one array!");
     }
@@ -102,5 +103,4 @@ public abstract class ByteIterator implements Iterator<Byte> {
     }
     return ret;
   }
-
 }

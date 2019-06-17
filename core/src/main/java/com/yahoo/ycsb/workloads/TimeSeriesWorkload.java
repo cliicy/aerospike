@@ -683,7 +683,7 @@ public class TimeSeriesWorkload extends Workload {
   }
   
   @Override
-  public Object initThread(Properties p, int mythreadid, int threadcount) throws WorkloadException {
+  public Object initThread(Properties p, int mythreadid, int threadcount,long[] bufoffset) throws WorkloadException {
     if (properties == null) {
       throw new WorkloadException("Workload has not been initialized.");
     }

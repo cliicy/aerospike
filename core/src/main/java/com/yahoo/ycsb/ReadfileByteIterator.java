@@ -19,13 +19,14 @@ package com.yahoo.ycsb;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
- *  A ByteIterator that generates a random sequence of bytes.
+ *  A ByteIterator that generated from  certain compressed file.
  */
 public class ReadfileByteIterator extends ByteIterator {
   private long len;
   private long off;
   private int bufOff;
   private byte[] buf;
+
 
   @Override
   public boolean hasNext() {
@@ -34,7 +35,6 @@ public class ReadfileByteIterator extends ByteIterator {
 
   private void fillBytesImpl(byte[] buffer, int base) {
     int bytes = ThreadLocalRandom.current().nextInt();
-
     switch (buffer.length - base) {
     default:
       buffer[base + 5] = (byte) (((bytes >> 25) & 95) + ' ');
@@ -61,12 +61,35 @@ public class ReadfileByteIterator extends ByteIterator {
     }
   }
 
-  public ReadfileByteIterator(long len) {
+
+/*
+read data from compressed files
+ */
+  public ReadfileByteIterator(long len,long[] offset,byte[] dst) {
+    long datalen = dst.length;
+    long gaplen = datalen - offset[0];
+
     this.len = len;
-    this.buf = new byte[6];
-    this.bufOff = buf.length;
-    fillBytes();
-    this.off = 0;
+    this.buf = new byte[(int)len];
+    int sz = 0;
+
+    if ( offset[0] + len <= datalen ) {
+      while (sz < this.buf.length) {
+        this.buf[sz++] = dst[(int) offset[0]++];
+      }
+      if (gaplen == 0) {
+        offset[0] = 0;
+      }
+    }
+    else  { // offset[0] + len > datalen
+      while (offset[0] <= datalen) {
+        this.buf[sz++] = dst[(int) offset[0]++];
+      }
+      offset[0] = 0;
+      while (offset[0] < gaplen) {
+        this.buf[sz++] = dst[(int) offset[0]++];
+      }
+    }
   }
 
   public byte nextByte() {
@@ -84,7 +107,7 @@ public class ReadfileByteIterator extends ByteIterator {
       ret = buffer.length - bufOffset;
     }
     int i;
-    for (i = 0; i < ret; i += 6) {
+    for (i = 0; i < ret; i += this.len) {
       fillBytesImpl(buffer, i + bufOffset);
     }
     off += ret;
