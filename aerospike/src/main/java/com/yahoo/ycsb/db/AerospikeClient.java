@@ -139,8 +139,7 @@ public class AerospikeClient extends com.yahoo.ycsb.DB {
     int index = 0;
 
     for (Map.Entry<String, ByteIterator> entry: values.entrySet()) {
-//      bins[index] = new Bin(entry.getKey(), entry.getValue().toArray());
-      bins[index] = new Bin(entry.getKey(), entry.getValue());
+      bins[index] = new Bin(entry.getKey(), entry.getValue().toArray());
       ++index;
     }
 

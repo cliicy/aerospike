@@ -351,7 +351,7 @@ public class CoreWorkload extends Workload {
    */
   public static final String FIELD_NAME_PREFIX_DEFAULT = "field";
   //added by cliicy.luo
-  public byte[] dst ;
+  public byte[] filebuff ;
   //added by cliicy.luo
 
   protected NumberGenerator keysequence;
@@ -404,13 +404,13 @@ public class CoreWorkload extends Workload {
 read data from compressed files added by cliicy.luo
  */
   public void ReadCompressedFile(String datafile) {
-    if ( this.dst  == null ) {
+    if ( this.filebuff  == null ) {
       try {
         System.out.println("only read at the this time");
         FileInputStream ins = new FileInputStream(datafile);
         long fileLength = ins.available();
-        this.dst = new byte[(int) fileLength];
-        ins.read(this.dst);
+        this.filebuff = new byte[(int) fileLength];
+        ins.read(this.filebuff);
         ins.close();
       } catch (Exception e) {
         e.printStackTrace();
@@ -604,7 +604,7 @@ read data from compressed files added by cliicy.luo
     //added by cliicy.luo
     if (datafile != "false") {
 //      System.out.println("will read data from the compressed file: " + datafile + " ...." );
-      data = new ReadfileByteIterator(fieldlengthgenerator.nextValue().longValue(),offset,this.dst);
+      data = new ReadfileByteIterator(fieldlengthgenerator.nextValue().longValue(),offset,this.filebuff);
     }
     else {
       if (dataintegrity) {
@@ -630,7 +630,7 @@ read data from compressed files added by cliicy.luo
       //added by cliicy.luo
       if (datafile != "false") {
 //        System.out.println("will read data from the compressed file: " + datafile + " ...." );
-        data = new ReadfileByteIterator(fieldlengthgenerator.nextValue().longValue(),offset,this.dst);
+        data = new ReadfileByteIterator(fieldlengthgenerator.nextValue().longValue(),offset,this.filebuff);
       } else {
         if (dataintegrity) {
           data = new StringByteIterator(buildDeterministicValue(key, fieldkey));
@@ -681,7 +681,7 @@ read data from compressed files added by cliicy.luo
     int keynum = keysequence.nextValue().intValue();
     String dbkey = buildKeyName(keynum);
     wlThreadState st = ((wlThreadState) threadstate);
-    System.out.println("----thereadID:----" + st.threadid + "----bufoffset: ----" + st.bufferoffset[0]);
+//    System.out.println("----thereadID:----" + st.threadid + "----bufoffset: ----" + st.bufferoffset[0]);
     HashMap<String, ByteIterator> values = buildValues(dbkey,st.bufferoffset);
 
     Status status;

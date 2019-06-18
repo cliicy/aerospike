@@ -66,6 +66,7 @@ public class ReadfileByteIterator extends ByteIterator {
 read data from compressed files
  */
   public ReadfileByteIterator(long len,long[] offset,byte[] dst) {
+    this.off = 0;
     long datalen = dst.length;
     long gaplen = datalen - offset[0];
 
@@ -122,6 +123,13 @@ read data from compressed files
   @Override
   public void reset() {
     off = 0;
+  }
+
+
+  public byte[] toArray() {
+//    String ss = new String(this.buf);
+//    System.out.println("******* "+ss+" *******");
+    return this.buf;
   }
   
 }
