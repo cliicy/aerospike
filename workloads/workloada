@@ -35,8 +35,8 @@ scanproportion=0
 insertproportion=0
 
 requestdistribution=zipfian
-#datacompressed=/opt/app/benchmark/aerospike/compress/best.txt
-datacompressed=/opt/app/benchmark/aerospike/compress/normal.txt
+datacompressed=/opt/app/benchmark/aerospike/compress/best.txt
 
-#threadcount=150
-threadcount=1
+
+threadcount=150
+#threadcount=1

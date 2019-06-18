@@ -292,7 +292,6 @@ public final class Client {
     //get number of threads, target and db
     int threadcount = Integer.parseInt(props.getProperty(THREAD_COUNT_PROPERTY, "1"));
     String dbname = props.getProperty(DB_PROPERTY, "com.yahoo.ycsb.BasicDB");
-    System.out.println("ooooo  dbname: " + dbname + " oooo");
     int target = Integer.parseInt(props.getProperty(TARGET_PROPERTY, "0"));
 
 
